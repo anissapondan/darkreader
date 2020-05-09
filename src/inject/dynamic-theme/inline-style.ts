@@ -104,14 +104,15 @@ export function getInlineOverrideStyle() {
 
 function expand(nodes: Node[], selector: string) {
     const results: Node[] = [];
-    nodes.forEach((n) => {
+    for (let x = 0, len = nodes.length; x < len; x++) {
+        const n = nodes[x];
         if (n instanceof Element) {
             if (n.matches(selector)) {
                 results.push(n);
             }
-            results.push(...Array.from(n.querySelectorAll(selector)));
+            results.push(...n.querySelectorAll(selector));
         }
-    });
+    }
     return results;
 }
 
@@ -136,30 +137,33 @@ export function deepWatchForInlineStyles(
         observers.get(root).disconnect();
     }
     const observer = new MutationObserver((mutations) => {
-        mutations.forEach((m) => {
-            const createdInlineStyles = expand(Array.from(m.addedNodes), INLINE_STYLE_SELECTOR);
+        for (let x = 0, len69 = mutations.length; x < len69; x++) {
+            const m: MutationRecord = mutations[x];
+            const createdInlineStyles = expand([...m.addedNodes], INLINE_STYLE_SELECTOR);
             if (createdInlineStyles.length > 0) {
-                createdInlineStyles.forEach((el: HTMLElement) => elementStyleDidChange(el));
+                for (let y = 0, len420 = createdInlineStyles.length; y < len420; y++) {
+                    elementStyleDidChange(createdInlineStyles[y] as HTMLElement);
+                }
             }
             if (m.type === 'attributes') {
                 if (INLINE_STYLE_ATTRS.includes(m.attributeName)) {
                     elementStyleDidChange(m.target as HTMLElement);
                 }
-                overridesList
-                    .filter(({store, dataAttr}) => store.has(m.target) && !(m.target as HTMLElement).hasAttribute(dataAttr))
-                    .forEach(({dataAttr}) => (m.target as HTMLElement).setAttribute(dataAttr, ''));
-            }
-        });
-        mutations.forEach((m) => {
-            m.addedNodes.forEach((added) => {
-                if (added.isConnected) {
-                    iterateShadowNodes(added, (n) => {
-                        shadowRootDiscovered(n.shadowRoot);
-                        deepWatchForInlineStyles(n.shadowRoot, elementStyleDidChange, shadowRootDiscovered);
-                    });
+                const filtered = overridesList.filter(({store, dataAttr}) => store.has(m.target) && !(m.target as HTMLElement).hasAttribute(dataAttr));
+                for (let z = 0, len70 = filtered.length; z < len70; z++) {
+                    (m.target as HTMLElement).setAttribute(filtered[z].dataAttr, '');
                 }
-            });
-        });
+            }
+        };
+        for (let m1 = 0, len96 = mutations.length; m1 < len96; m1++) {
+            const m = mutations[m1].addedNodes;
+            for (let m2 = 0, len97 = m.length; m2 < len97; m2++) {
+                iterateShadowNodes(m[m2], (n) => {
+                    shadowRootDiscovered(n.shadowRoot);
+                    deepWatchForInlineStyles(n.shadowRoot, elementStyleDidChange, shadowRootDiscovered);
+                });
+            }
+        }
     });
     observer.observe(root, {
         childList: true,
@@ -222,11 +226,13 @@ export function overrideInlineStyle(element: HTMLElement, theme: FilterConfig, i
 
     if (ignoreSelectors.length > 0) {
         if (shouldIgnoreInlineStyle(element, ignoreSelectors)) {
-            unsetProps.forEach((cssProp) => {
-                const {store, dataAttr} = overrides[cssProp];
+            const SpreadedUnsetProps = [...unsetProps];
+            for (let x = 0, len75 = SpreadedUnsetProps.length; x < len75; x++) {
+                const css = SpreadedUnsetProps[x];
+                const {store, dataAttr} = overrides[css];
                 store.delete(element);
                 element.removeAttribute(dataAttr);
-            });
+            }
             return;
         }
     }
@@ -274,10 +280,11 @@ export function overrideInlineStyle(element: HTMLElement, theme: FilterConfig, i
         setCustomProp('fill', 'color', element.style.getPropertyValue('fill'));
     }
 
-    Array.from(unsetProps).forEach((cssProp) => {
-        const {store, dataAttr} = overrides[cssProp];
+    for (let x = 0, len75 = [...unsetProps].length; x < len75; x++) {
+        const css = [...unsetProps][x];
+        const {store, dataAttr} = overrides[css];
         store.delete(element);
         element.removeAttribute(dataAttr);
-    });
+    }
     inlineStyleCache.set(element, getInlineStyleCacheKey(element, theme));
 }

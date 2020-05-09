@@ -2,35 +2,39 @@ import {parseURL, getAbsoluteURL} from './url';
 import {logWarn} from '../utils/log';
 
 export function iterateCSSRules(rules: CSSRuleList, iterate: (rule: CSSStyleRule) => void) {
-    Array.from(rules)
-        .forEach((rule) => {
-            if (rule instanceof CSSMediaRule) {
-                const media = Array.from(rule.media);
+    for (let x = 0, len = rules.length; x < len; x++) {
+        const rule = rules[x];
+        if (rule instanceof CSSMediaRule) {
+            for (let y = 0, len1 = rule.media.length; y < len1; y++) {
+                const media = rule.media[y];
                 if (media.includes('screen') || media.includes('all') || !(media.includes('print') || media.includes('speech'))) {
                     iterateCSSRules(rule.cssRules, iterate);
                 }
-            } else if (rule instanceof CSSStyleRule) {
-                iterate(rule);
-            } else if (rule instanceof CSSImportRule) {
-                try {
-                    iterateCSSRules(rule.styleSheet.cssRules, iterate);
-                } catch (err) {
-                    logWarn(err);
-                }
-            } else {
-                logWarn(`CSSRule type not supported`, rule);
             }
-        });
+        } else if (rule instanceof CSSStyleRule) {
+            iterate(rule);
+        } else if (rule instanceof CSSImportRule) {
+            try {
+                iterateCSSRules(rule.styleSheet.cssRules, iterate);
+            } catch (err) {
+                logWarn(err);
+            }
+        } else {
+            logWarn(`CSSRule type not supported`, rule);
+        }
+    }
 }
 
 export function iterateCSSDeclarations(style: CSSStyleDeclaration, iterate: (property: string, value: string) => void) {
-    Array.from(style).forEach((property) => {
+    const array = Array.from(style);
+    for (let x = 0, len = array.length; x < len; x++) {
+        const property = array[x];
         const value = style.getPropertyValue(property).trim();
         if (!value) {
             return;
         }
         iterate(property, value);
-    });
+    }
 }
 
 function isCSSVariable(property: string) {

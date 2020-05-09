@@ -11,9 +11,10 @@ interface ChangedStyles {
     moved: (HTMLStyleElement | HTMLLinkElement)[];
 }
 
-function getAllManageableStyles(nodes: Iterable<Node> | ArrayLike<Node>) {
+function getAllManageableStyles(nodes: Array<Node>) {
     const results: (HTMLLinkElement | HTMLStyleElement)[] = [];
-    Array.from(nodes).forEach((node) => {
+    for (let n = 0, len = nodes.length; n < len; n++) {
+        const node = nodes[n];
         if (node instanceof Element) {
             if (shouldManageStyle(node)) {
                 results.push(node as HTMLLinkElement | HTMLStyleElement);
@@ -26,7 +27,7 @@ function getAllManageableStyles(nodes: Iterable<Node> | ArrayLike<Node>) {
                 ).filter(shouldManageStyle)
             );
         }
-    });
+    }
     return results;
 }
 
@@ -37,21 +38,22 @@ function collectUndefinedElements(root: ParentNode) {
     if (!isDefinedSelectorSupported()) {
         return;
     }
-    root.querySelectorAll(':not(:defined)')
-        .forEach((el) => {
-            const tag = el.tagName.toLowerCase();
-            if (!undefinedGroups.has(tag)) {
-                undefinedGroups.set(tag, new Set());
-                customElementsWhenDefined(tag).then(() => {
-                    if (elementsDefinitionCallback) {
-                        const elements = undefinedGroups.get(tag);
-                        undefinedGroups.delete(tag);
-                        elementsDefinitionCallback(Array.from(elements));
-                    }
-                });
-            }
-            undefinedGroups.get(tag).add(el);
-        });
+    const querySelector = root.querySelectorAll(':not(:defined)');
+    for (let x = 0, len18 = querySelector.length; x < len18; x++) {
+        const el = querySelector[x];
+        const tag = el.tagName.toLowerCase();
+        if (!undefinedGroups.has(tag)) {
+            undefinedGroups.set(tag, new Set());
+            customElementsWhenDefined(tag).then(() => {
+                if (elementsDefinitionCallback) {
+                    const elements = undefinedGroups.get(tag);
+                    undefinedGroups.delete(tag);
+                    elementsDefinitionCallback(Array.from(elements));
+                }
+            });
+        }
+        undefinedGroups.get(tag).add(el);
+    }
 }
 
 function customElementsWhenDefined(tag: string) {
@@ -111,31 +113,38 @@ export function watchForStyleChanges(update: (styles: ChangedStyles) => void) {
         const additions = new Set<Node>();
         const deletions = new Set<Node>();
         const styleUpdates = new Set<HTMLLinkElement | HTMLStyleElement>();
-        mutations.forEach((m) => {
-            m.addedNodes.forEach((n) => additions.add(n));
-            m.removedNodes.forEach((n) => deletions.add(n));
+        for (let mut = 0, len = mutations.length; mut < len; mut++) {
+            const m: MutationRecord = mutations[mut];
+            for (let an = 0, len2 = m.addedNodes.length; an < len2; an++) {
+                additions.add(m.addedNodes[an]);
+            }
+            for (let an = 0, len3 = m.removedNodes.length; an < len3; an++) {
+                deletions.add(m.removedNodes[an]);
+            }
             if (m.type === 'attributes' && shouldManageStyle(m.target)) {
                 styleUpdates.add(m.target as HTMLLinkElement | HTMLStyleElement);
             }
-        });
-        const styleAdditions = getAllManageableStyles(additions);
-        const styleDeletions = getAllManageableStyles(deletions);
-        additions.forEach((n) => {
-            iterateShadowNodes(n, (host) => {
-                const shadowStyles = getAllManageableStyles(host.shadowRoot.children);
+        }
+        const aArray = [...additions];
+        const dArray = [...deletions];
+        const styleAdditions = getAllManageableStyles(aArray);
+        const styleDeletions = getAllManageableStyles(dArray);
+        for (let aa = 0, len4 = aArray.length; aa < len4; aa++) {
+            iterateShadowNodes(aArray[aa], (host) => {
+                const shadowStyles = getAllManageableStyles([...host.shadowRoot.children]);
                 if (shadowStyles.length > 0) {
                     styleAdditions.push(...shadowStyles);
                 }
             });
-        });
-        deletions.forEach((n) => {
-            iterateShadowNodes(n, (host) => {
-                const shadowStyles = getAllManageableStyles(host.shadowRoot.children);
+        }
+        for (let dd = 0, len5 = dArray.length; dd < len5; dd++) {
+            iterateShadowNodes(dArray[dd], (host) => {
+                const shadowStyles = getAllManageableStyles([...host.shadowRoot.children]);
                 if (shadowStyles.length > 0) {
-                    styleDeletions.push(...shadowStyles);
+                    styleAdditions.push(...shadowStyles);
                 }
             });
-        });
+        }
 
         styleDeletions.forEach((style) => {
             if (style.isConnected) {

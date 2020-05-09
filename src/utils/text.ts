@@ -26,7 +26,7 @@ export function getTextPositionMessage(text: string, index: number) {
 
 export function getTextDiffIndex(a: string, b: string) {
     const short = Math.min(a.length, b.length);
-    for (let i = 0; i < short; i++) {
+    for (let i = 0, len = short; i < len; i++) {
         if (a[i] !== b[i]) {
             return i;
         }
